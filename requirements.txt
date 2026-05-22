@@ -1,0 +1,16 @@
+# multiusers.py — 멀티유저·멀티세션 RAG 챗봇
+streamlit>=1.32.0
+python-dotenv>=1.0.0
+bcrypt>=4.0.0
+
+# LangChain
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-openai>=0.2.0
+langchain-text-splitters>=0.3.0
+
+# Supabase (사용자·세션·벡터 DB)
+supabase>=2.4.0
+
+# PDF 로더 (PyPDFLoader)
+pypdf>=4.0.0
