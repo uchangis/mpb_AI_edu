@@ -29,6 +29,20 @@ ENV_PATH = REPO_ROOT / ".env"
 LOGO_PATH = REPO_ROOT / "logo.png"
 LOG_DIR = REPO_ROOT / "logs"
 
+
+def _resolve_log_dir() -> Path:
+    """로컬은 repo/logs, Streamlit Cloud 등 읽기 전용 환경은 temp로 폴백."""
+    for candidate in (LOG_DIR, Path(tempfile.gettempdir()) / "mpb_ai_edu" / "logs"):
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            probe = candidate / ".write_probe"
+            probe.write_text("", encoding="utf-8")
+            probe.unlink(missing_ok=True)
+            return candidate
+        except OSError:
+            continue
+    return Path(tempfile.gettempdir())
+
 MODEL_NAME = "gpt-4o-mini"
 VECTOR_BATCH_SIZE = 10
 RETRIEVER_K = 10
@@ -51,16 +65,21 @@ def _apply_config() -> None:
 
 
 def _setup_logging() -> logging.Logger:
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-    log_path = LOG_DIR / f"multiusers_{datetime.now().strftime('%Y%m%d')}.log"
     root = logging.getLogger()
     root.handlers.clear()
     root.setLevel(logging.WARNING)
     fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-    fh = logging.FileHandler(log_path, encoding="utf-8")
-    fh.setLevel(logging.WARNING)
-    fh.setFormatter(fmt)
-    root.addHandler(fh)
+    log_path = _resolve_log_dir() / f"multiusers_{datetime.now().strftime('%Y%m%d')}.log"
+    try:
+        fh = logging.FileHandler(log_path, encoding="utf-8")
+        fh.setLevel(logging.WARNING)
+        fh.setFormatter(fmt)
+        root.addHandler(fh)
+    except OSError:
+        sh = logging.StreamHandler()
+        sh.setLevel(logging.WARNING)
+        sh.setFormatter(fmt)
+        root.addHandler(sh)
     for name in ("httpx", "httpcore", "urllib3", "openai", "langchain"):
         logging.getLogger(name).setLevel(logging.WARNING)
     return logging.getLogger("multiusers")
